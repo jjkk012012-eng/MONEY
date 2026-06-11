@@ -3,221 +3,172 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Factory STEP Quote Engine - Assembly 기반 견적 계산기</title>
-  <link rel="stylesheet" href="styles.css" />
+  <title>공장 내부용 STEP 견적 계산기</title>
+  <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
-  <div class="app-shell">
-    <header class="topbar">
-      <div>
-        <div class="eyebrow">공장 내부용 · STEP/STP Assembly 견적 SaaS</div>
-        <h1>파트 자동 분석 → 공장 수정 → 고객 제출 견적가 산출</h1>
-        <p class="subtitle">공장 선택 없이, 우리 공장의 단가표·재료 시세 할증·공법별 마진으로만 계산합니다.</p>
-      </div>
-      <div class="top-actions">
-        <button id="loadBigDataBtn" class="ghost">대용량 단가 데이터 불러오기</button>
-        <button id="resetDemoBtn" class="ghost">샘플 어셈블리 생성</button>
-        <button id="exportBtn" class="primary">견적 JSON 내보내기</button>
-      </div>
-    </header>
-
-    <section class="hero-grid">
-      <article class="card upload-card">
-        <div class="section-title">
-          <span class="badge">1</span>
-          <div>
-            <h2>STEP/STP 업로드</h2>
-            <p>초기에는 파일 안의 파트명/어셈블리명과 형상 추정값을 자동으로 채웁니다.</p>
-          </div>
-        </div>
-        <label id="dropZone" class="drop-zone" for="stepFile">
-          <input id="stepFile" type="file" accept=".step,.stp,.STEP,.STP" />
-          <strong>STEP/STP 파일을 드래그하거나 클릭</strong>
-          <span>Assembly STEP이면 파트명을 추출하고, 동일 파트 수량을 자동 집계합니다.</span>
-        </label>
-        <div id="fileMeta" class="file-meta">아직 파일 없음</div>
-      </article>
-
-      <article class="card">
-        <div class="section-title compact">
-          <span class="badge">2</span>
-          <div>
-            <h2>견적 기본값</h2>
-            <p>고객에게는 시간/공수/원가를 보여주지 않습니다.</p>
-          </div>
-        </div>
-        <div class="form-grid">
-          <label>전체 수량
-            <input id="globalQty" type="number" min="1" value="1" />
-          </label>
-          <label>기본 재질
-            <select id="globalMaterial"></select>
-          </label>
-          <label>기본 후처리
-            <select id="globalFinish"></select>
-          </label>
-          <label>조립 포함
-            <select id="assemblyIncluded">
-              <option value="yes">포함</option>
-              <option value="no">미포함</option>
-            </select>
-          </label>
-        </div>
-      </article>
-
-      <article class="card totals-card">
-        <div class="section-title compact">
-          <span class="badge">3</span>
-          <div>
-            <h2>견적 요약</h2>
-            <p>공장 내부 산출가 기준 · 플랫폼 수수료 0원</p>
-          </div>
-        </div>
-        <div class="quote-total">
-          <span>고객 제출 견적가</span>
-          <strong id="customerTotal">0원</strong>
-        </div>
-        <div class="quote-range"><span id="customerRange">예상 범위: 0원 ~ 0원</span></div>
-        <div class="mini-stats">
-          <div><b id="partCount">0</b><span>파트</span></div>
-          <div><b id="processCount">0</b><span>공법</span></div>
-          <div><b id="confidenceAvg">-</b><span>평균 신뢰도</span></div>
-        </div>
-      </article>
-    </section>
-
-    <main class="workspace">
-      <aside class="panel part-tree-panel">
-        <div class="panel-head">
-          <div>
-            <h2>어셈블리 / 파트 리스트</h2>
-            <p>파트를 선택하면 오른쪽에서 자동 분석값을 수정할 수 있습니다.</p>
-          </div>
-          <button id="applyBulkBtn" class="small">선택 일괄 적용</button>
-        </div>
-        <div class="filter-row">
-          <input id="partSearch" placeholder="파트명 검색: PLATE, BRACKET, 4040..." />
-          <select id="processFilter">
-            <option value="all">전체 공법</option>
-          </select>
-        </div>
-        <div id="partList" class="part-list empty">샘플 생성 또는 STP 파일을 업로드하세요.</div>
-      </aside>
-
-      <section class="panel detail-panel">
-        <div class="panel-head sticky-head">
-          <div>
-            <h2 id="selectedPartName">선택된 파트 없음</h2>
-            <p id="selectedPartHint">왼쪽에서 파트를 선택하세요.</p>
-          </div>
-          <div class="part-nav-actions">
-            <button id="duplicatePartBtn" class="small ghost">파트 복제</button>
-            <button id="excludePartBtn" class="small danger">견적 제외</button>
-          </div>
-        </div>
-
-        <div id="partDetail" class="part-detail empty-detail">
-          <div class="empty-state">
-            <h3>파트별 수정 구조</h3>
-            <p>초기 자동 분석값을 먼저 보여주고, 공장이 실제 공법·재질·탭·절곡·마진을 수정하는 방식입니다.</p>
-          </div>
-        </div>
-      </section>
-
-      <aside class="panel quote-panel">
-        <div class="panel-head">
-          <div>
-            <h2>우리 공장 단가표</h2>
-            <p>재료 시세 + 할증, 공법별 단가, 공법별 마진율</p>
-          </div>
-        </div>
-        <div class="settings-tabs">
-          <button class="tab active" data-tab="materials">재료</button>
-          <button class="tab" data-tab="processes">공법</button>
-          <button class="tab" data-tab="assembly">조립</button>
-        </div>
-        <div id="settingsContent"></div>
-      </aside>
-    </main>
-
-    <section class="panel bottom-panel">
-      <div class="panel-head">
-        <div>
-          <h2>파트별 견적표</h2>
-          <p>고객 제출용에는 상세 원가를 숨기고, 내부용에서는 산출 근거를 확인합니다.</p>
-        </div>
-        <button id="copyCustomerQuoteBtn" class="small primary">고객 제출 요약 복사</button>
-      </div>
-      <div class="table-wrap">
-        <table id="quoteTable">
-          <thead>
-            <tr>
-              <th>파트명</th>
-              <th>수량</th>
-              <th>공법</th>
-              <th>재질</th>
-              <th>자동 분석</th>
-              <th>재료비</th>
-              <th>공정비</th>
-              <th>후처리/추가</th>
-              <th>마진</th>
-              <th>고객 제출가</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </section>
-  </div>
-
-  <template id="partDetailTemplate">
-    <div class="detail-grid">
-      <article class="detail-card analysis-card">
-        <h3>자동 분석값</h3>
-        <div class="analysis-metrics"></div>
-        <div class="recommend-box"></div>
-      </article>
-
-      <article class="detail-card">
-        <h3>기본 견적 항목</h3>
-        <div class="form-grid two">
-          <label>견적 포함
-            <select data-field="included"><option value="yes">포함</option><option value="no">제외</option></select>
-          </label>
-          <label>파트 수량
-            <input data-field="qty" type="number" min="1" />
-          </label>
-          <label>제작/구매 구분
-            <select data-field="category">
-              <option value="make">제작품</option>
-              <option value="buy">구매품</option>
-              <option value="exclude">제외</option>
-            </select>
-          </label>
-          <label>제작 방식
-            <select data-field="process"></select>
-          </label>
-          <label>재질
-            <select data-field="material"></select>
-          </label>
-          <label>후처리
-            <select data-field="finish"></select>
-          </label>
-        </div>
-      </article>
-
-      <article class="detail-card process-options-card">
-        <h3>공법별 수정 항목</h3>
-        <div class="process-options"></div>
-      </article>
-
-      <article class="detail-card">
-        <h3>이 파트 견적</h3>
-        <div class="part-cost-box"></div>
-      </article>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">Factory Quote Tool · Single Factory Mode</p>
+      <h1>STEP 어셈블리 파트 견적 계산기</h1>
+      <p class="desc">어셈블리는 견적에서 제외하고, 말단 파트만 자동 집계합니다. 자동 분석값은 처음 채워주고 이후 공장이 직접 수정합니다.</p>
     </div>
+    <div class="top-actions">
+      <button id="btnLoadSample" class="btn ghost">샘플 불러오기</button>
+      <button id="btnReset" class="btn danger">초기화</button>
+    </div>
+  </header>
+
+  <main class="app">
+    <section class="upload-card">
+      <div class="upload-left">
+        <label class="dropzone" for="stepFile">
+          <input id="stepFile" type="file" accept=".step,.stp,.STEP,.STP" />
+          <span class="drop-icon">STP</span>
+          <strong>STEP/STP 파일 업로드</strong>
+          <small>PRODUCT / NEXT_ASSEMBLY_USAGE_OCCURRENCE 기준으로 어셈블리 구조를 읽고 말단 파트만 리스트업합니다.</small>
+        </label>
+      </div>
+      <div class="summary-panel">
+        <div class="metric"><span>말단 파트</span><strong id="metricParts">0</strong></div>
+        <div class="metric"><span>견적 제외 어셈블리</span><strong id="metricAssemblies">0</strong></div>
+        <div class="metric"><span>총 수량</span><strong id="metricQty">0</strong></div>
+        <div class="metric total"><span>고객 제출 견적</span><strong id="metricTotal">0원</strong></div>
+      </div>
+    </section>
+
+    <section class="notice" id="parseNotice">
+      STP 파일을 올리면 어셈블리/서브어셈블리는 제외하고 실제 제작·구매 대상인 말단 파트만 표에 표시됩니다.
+    </section>
+
+    <section class="toolbar">
+      <div class="field compact">
+        <label>선택 파트 일괄 공법</label>
+        <select id="bulkProcess">
+          <option value="">변경 안 함</option>
+          <option value="cnc">CNC/MCT</option>
+          <option value="lathe">선반</option>
+          <option value="sheet">판금/절곡</option>
+          <option value="printer">3D프린팅</option>
+          <option value="injection">사출</option>
+          <option value="profile">프로파일</option>
+          <option value="welding">용접</option>
+          <option value="purchase">구매품</option>
+          <option value="exclude">제외</option>
+        </select>
+      </div>
+      <div class="field compact">
+        <label>일괄 재질</label>
+        <select id="bulkMaterial"></select>
+      </div>
+      <button class="btn" id="btnApplyBulk">선택 일괄 적용</button>
+      <button class="btn ghost" id="btnReRecommend">추천값 다시 적용</button>
+      <button class="btn primary" id="btnExport">견적 CSV 내보내기</button>
+    </section>
+
+    <section class="quote-layout">
+      <div class="table-card">
+        <div class="table-head">
+          <div>
+            <h2>파트별 견적표</h2>
+            <p>자동 분석값은 수정 가능. 어셈블리/서브어셈블리 이름은 표에 넣지 않습니다.</p>
+          </div>
+          <div class="mini-total">
+            <span>마진 포함</span>
+            <strong id="tableTotal">0원</strong>
+          </div>
+        </div>
+        <div class="table-scroll">
+          <table id="partsTable">
+            <thead>
+              <tr>
+                <th><input type="checkbox" id="checkAll" /></th>
+                <th>파트명</th>
+                <th>수량</th>
+                <th>자동 추천</th>
+                <th>공법</th>
+                <th>재질</th>
+                <th>중량/길이</th>
+                <th>탭</th>
+                <th>절곡</th>
+                <th>추가비</th>
+                <th>마진%</th>
+                <th>견적가</th>
+              </tr>
+            </thead>
+            <tbody id="partsBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <aside class="settings-card">
+        <h2>우리 공장 단가표</h2>
+        <p class="muted">고객에게 보이는 건 최종 견적뿐이고, 이 값들은 공장 내부 계산용입니다.</p>
+        <details open>
+          <summary>재료 시세 + 할증</summary>
+          <div id="materialRates" class="settings-grid"></div>
+        </details>
+        <details open>
+          <summary>공법별 기본 단가</summary>
+          <div class="settings-grid">
+            <label>CNC 소형 기본가<input id="rateCncSmall" type="number" /></label>
+            <label>CNC 중형 기본가<input id="rateCncMid" type="number" /></label>
+            <label>CNC 대형 기본가<input id="rateCncLarge" type="number" /></label>
+            <label>선반 기본가<input id="rateLatheBase" type="number" /></label>
+            <label>판금 기본가<input id="rateSheetBase" type="number" /></label>
+            <label>절곡 1회 기본<input id="rateBend" type="number" /></label>
+            <label>3D프린팅 cm³<input id="ratePrintCm3" type="number" /></label>
+            <label>프로파일 m당<input id="rateProfileM" type="number" /></label>
+            <label>용접 기본가<input id="rateWeldBase" type="number" /></label>
+          </div>
+        </details>
+        <details>
+          <summary>탭 단가</summary>
+          <div id="tapRates" class="settings-grid"></div>
+        </details>
+        <details>
+          <summary>공법별 기본 마진</summary>
+          <div id="marginRates" class="settings-grid"></div>
+        </details>
+        <button class="btn primary full" id="btnRecalc">단가표 적용 / 다시 계산</button>
+      </aside>
+    </section>
+
+    <section class="breakdown-card">
+      <h2>견적 요약</h2>
+      <div id="breakdown" class="breakdown-grid"></div>
+    </section>
+  </main>
+
+  <template id="rowTemplate">
+    <tr>
+      <td><input class="row-check" type="checkbox" /></td>
+      <td class="part-name-cell">
+        <strong class="part-name"></strong>
+        <small class="part-path"></small>
+      </td>
+      <td><input class="qty" type="number" min="0" step="1" /></td>
+      <td><span class="badge recommendation"></span><small class="confidence"></small></td>
+      <td><select class="process"></select></td>
+      <td><select class="material"></select></td>
+      <td class="measure-cell">
+        <label>kg<input class="weight" type="number" min="0" step="0.01" /></label>
+        <label>m<input class="length" type="number" min="0" step="0.01" /></label>
+      </td>
+      <td class="tap-cell">
+        <button class="link-btn tap-toggle" type="button"></button>
+        <div class="popover tap-popover"></div>
+      </td>
+      <td class="bend-cell">
+        <button class="link-btn bend-toggle" type="button"></button>
+        <div class="popover bend-popover"></div>
+      </td>
+      <td><input class="extra" type="number" min="0" step="1000" /></td>
+      <td><input class="margin" type="number" min="0" max="200" step="1" /></td>
+      <td class="price-cell"><strong class="row-price">0원</strong><small class="row-base"></small></td>
+    </tr>
   </template>
 
-  <script src="app.js"></script>
+  <script src="./app.js"></script>
 </body>
 </html>

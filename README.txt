@@ -1,41 +1,21 @@
-Factory STEP Quote Assembly - 고급형 공장 내부 견적 SaaS
+공장 내부용 STEP/STP 어셈블리 견적 계산기
 
-목적
-- 공장 1곳이 고객에게 받은 STEP/STP Assembly 파일을 업로드합니다.
-- 파일 안의 PRODUCT / ASSEMBLY / BREP 이름을 최대한 추출해 파트 리스트를 만듭니다.
-- 초기에는 파트명 + 형상 추정값으로 공법/재질/탭/절곡 후보를 자동 입력합니다.
-- 이후 공장이 파트별로 공법, 재질, 후처리, 탭 후보, 절곡 후보, 마진을 직접 수정합니다.
-- 전체 견적은 고객 제출가로 합산됩니다.
+핵심 수정 사항
+1) 공장 선택 없음: 한 공장이 자기 내부 단가표로 견적 계산
+2) 어셈블리/서브어셈블리 제외: NEXT_ASSEMBLY_USAGE_OCCURRENCE의 parent 노드는 견적 제외
+3) 말단 파트만 집계: child 이면서 parent가 아닌 leaf part만 표에 표시
+4) 자동 분석값 표시 후 수정 가능: 공법/재질/수량/중량/길이/탭/절곡/추가비/마진 수정
+5) 견적 과대 방지: 사출 금형비는 기본 미포함, 공정 기본 단가도 현실적 소액 기준
+6) 고객 화면용이 아니라 공장 내부용: 고객 제출 견적가만 최종 출력
 
-핵심 구조
-1. STEP/STP 업로드
-2. 어셈블리/파트명 추출 및 동일 파트 수량 집계
-3. 자동 분석값 표시
-   - 크기, 부피, 표면적, 중량
-   - 홀 후보, 탭 후보
-   - 절곡 후보
-   - 공법 추천 신뢰도
-4. 파트별 수정
-   - 제작품/구매품/제외
-   - CNC/MCT, 선반, 판금/절곡, 3D프린팅, 사출, 프로파일, 용접, 구매품
-   - 재질, 후처리, 복잡도
-   - 탭 후보 체크/해제
-   - 절곡 후보 체크/해제
-5. 우리 공장 단가표
-   - 재료: 시세 + 금액 / 시세 + % / 직접 입력
-   - 공법별 기본비/셋업비/마진율
-   - 조립/검사/포장비
-6. 견적 산출
-   - 고객 화면에는 예상 시간/원가 상세 숨김
-   - 공장 내부 화면에는 재료비, 공정비, 후처리/추가, 마진 표시
+실행
+- index.html 더블클릭
+- 또는 python -m http.server 8080 후 http://localhost:8080
+
+실제 STEP 형상 파싱 연동
+- app.js의 StepParserAdapter.parse()를 occt-import-js/OpenCascade WASM 파서로 교체
+- 하위 견적 계산 함수(calcPart, calcTapCost, calcBendCost)는 그대로 사용 가능
 
 주의
-- 현재 버전은 브라우저 단독 실행용입니다.
-- 실제 STEP 형상 파싱은 app.js 안의 StepParserAdapter를 occt-import-js 또는 OpenCascade WASM으로 교체하면 됩니다.
-- 하위 Cost Engine은 파서와 분리되어 있어 실제 파싱값만 넣으면 그대로 계산됩니다.
-
-실행 방법
-- index.html 더블클릭
-- data/rates.large.json은 20MB 이상 대용량 샘플 단가 데이터입니다.
-- 일부 브라우저는 로컬 파일에서 data/rates.large.json fetch를 차단할 수 있습니다. 이 경우 간단한 로컬 서버로 열면 됩니다.
-  예: python -m http.server 8080
+- 현재 브라우저 단독 데모는 STEP 텍스트의 PRODUCT / PRODUCT_DEFINITION / NEXT_ASSEMBLY_USAGE_OCCURRENCE 이름 기반 파싱 + 형상값 추정입니다.
+- 실제 크기/부피/표면적/홀/절곡 후보는 CAD 커널 연동 시 정확화됩니다.
