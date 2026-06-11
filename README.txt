@@ -1,21 +1,50 @@
-공장 내부용 STEP/STP 어셈블리 견적 계산기
+공장 내부용 STEP/STP 견적 계산기
 
-핵심 수정 사항
-1) 공장 선택 없음: 한 공장이 자기 내부 단가표로 견적 계산
-2) 어셈블리/서브어셈블리 제외: NEXT_ASSEMBLY_USAGE_OCCURRENCE의 parent 노드는 견적 제외
-3) 말단 파트만 집계: child 이면서 parent가 아닌 leaf part만 표에 표시
-4) 자동 분석값 표시 후 수정 가능: 공법/재질/수량/중량/길이/탭/절곡/추가비/마진 수정
-5) 견적 과대 방지: 사출 금형비는 기본 미포함, 공정 기본 단가도 현실적 소액 기준
-6) 고객 화면용이 아니라 공장 내부용: 고객 제출 견적가만 최종 출력
+목적
+- 공장 1곳이 자기 내부 단가표로 고객 제출 견적을 산출하는 웹앱입니다.
+- 공장 선택/제조사 비교/플랫폼 마진은 없습니다.
+- STP 어셈블리에서 어셈블리/서브어셈블리는 견적 대상에서 제외하고, 말단 파트만 집계합니다.
 
 실행
-- index.html 더블클릭
-- 또는 python -m http.server 8080 후 http://localhost:8080
+1) 압축 해제
+2) index.html 실행
+3) 브라우저에서 data/rates.json 로딩이 막히면 폴더에서 터미널 실행:
+   python -m http.server 8080
+   http://localhost:8080 접속
 
-실제 STEP 형상 파싱 연동
-- app.js의 StepParserAdapter.parse()를 occt-import-js/OpenCascade WASM 파서로 교체
-- 하위 견적 계산 함수(calcPart, calcTapCost, calcBendCost)는 그대로 사용 가능
+핵심 흐름
+STP 업로드
+→ PRODUCT / NEXT_ASSEMBLY_USAGE_OCCURRENCE / BREP 이름 추출
+→ child가 있는 어셈블리 노드는 제외
+→ 말단 파트만 리스트업
+→ 동일 파트명 수량 합산
+→ 파트명 기반 + 형상 추정 기반 자동 추천
+→ 공장이 공법/재질/수량/탭/절곡/마진 수정
+→ 수정 즉시 견적 재계산
 
-주의
-- 현재 브라우저 단독 데모는 STEP 텍스트의 PRODUCT / PRODUCT_DEFINITION / NEXT_ASSEMBLY_USAGE_OCCURRENCE 이름 기반 파싱 + 형상값 추정입니다.
-- 실제 크기/부피/표면적/홀/절곡 후보는 CAD 커널 연동 시 정확화됩니다.
+공법 분류 우선순위
+1. 구매품
+2. 프로파일/압출
+3. 선반
+4. 판금/절곡
+5. 3D프린팅/사출
+6. CNC/MCT
+7. 분류 필요
+
+절곡 기준
+- 같은 두께 유지
+- 얇은 판재형
+- 면이 끊긴 것이 아니라 R/곡률을 가진 휨 구조
+- 자동 후보를 표시하고, 공장이 수정/확정합니다.
+
+CNC 기준
+- 구매품, 프로파일, 선반, 판금/절곡을 먼저 제외합니다.
+- 남은 부품 중 두께 일정성이 낮고, 포켓/홈/단차/탭/홀 등 절삭 가공 특징이 있으면 CNC/MCT로 추천합니다.
+
+중요
+- 현재 버전은 브라우저 단독 실행을 위해 실제 CAD 커널 분석 전 단계입니다.
+- 실제 형상 분석은 app.js의 StepParserAdapter, FeatureEstimator를 OpenCascade/occt-import-js 기반으로 교체하면 됩니다.
+- 견적 엔진/수정 UI/합산 구조는 CAD 파서 교체 후에도 그대로 사용할 수 있도록 분리했습니다.
+
+GitHub 제한
+- data/rates.json은 100MB 이하로 생성되어 GitHub 단일 파일 제한에 걸리지 않습니다.
