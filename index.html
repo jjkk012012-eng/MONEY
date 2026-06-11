@@ -3,130 +3,221 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>FactoryQuote STEP | 공장용 STEP 자동견적 SaaS</title>
+  <title>Factory STEP Quote Engine - Assembly 기반 견적 계산기</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">
-      <div class="logo">FQ</div>
+  <div class="app-shell">
+    <header class="topbar">
       <div>
-        <strong>FactoryQuote STEP</strong>
-        <span>공장용 STEP 자동견적 SaaS</span>
+        <div class="eyebrow">공장 내부용 · STEP/STP Assembly 견적 SaaS</div>
+        <h1>파트 자동 분석 → 공장 수정 → 고객 제출 견적가 산출</h1>
+        <p class="subtitle">공장 선택 없이, 우리 공장의 단가표·재료 시세 할증·공법별 마진으로만 계산합니다.</p>
       </div>
-    </div>
-    <nav>
-      <a href="#upload">STEP 견적</a>
-      <a href="#rates">단가표</a>
-      <a href="#dashboard">공장 대시보드</a>
-    </nav>
-  </header>
+      <div class="top-actions">
+        <button id="loadBigDataBtn" class="ghost">대용량 단가 데이터 불러오기</button>
+        <button id="resetDemoBtn" class="ghost">샘플 어셈블리 생성</button>
+        <button id="exportBtn" class="primary">견적 JSON 내보내기</button>
+      </div>
+    </header>
 
-  <main>
-    <section class="hero">
-      <div class="heroText">
-        <p class="eyebrow">제조업체·가공공장 전용</p>
-        <h1>공장이 직접 쓰는<br />STEP 자동견적 시스템</h1>
-        <p class="lead">고객이 보낸 STEP 파일을 업로드하면, 공장이 입력한 재료 시세 할증·공법별 단가·공법별 마진 기준으로 내부 견적가를 빠르게 계산합니다.</p>
-        <div class="ctaRow">
-          <a class="btn primary" href="#upload">STEP 견적 계산</a>
-          <a class="btn ghost" href="#rates">공장 단가표 설정</a>
+    <section class="hero-grid">
+      <article class="card upload-card">
+        <div class="section-title">
+          <span class="badge">1</span>
+          <div>
+            <h2>STEP/STP 업로드</h2>
+            <p>초기에는 파일 안의 파트명/어셈블리명과 형상 추정값을 자동으로 채웁니다.</p>
+          </div>
         </div>
-        <div class="badges">
-          <span>플랫폼 수수료 0원</span><span>공법별 마진</span><span>공장 내부 원가표</span><span>고객 제출가 자동산출</span>
-        </div>
-      </div>
-      <div class="heroCard">
-        <h3>공장 입장에서 필요한 화면</h3>
-        <ul>
-          <li>내 재료 시세 + 할증 설정</li>
-          <li>CNC/판금/사출/3D프린터/프로파일별 단가</li>
-          <li>공법별 마진율</li>
-          <li>STEP 견적 결과를 고객 제출가로 변환</li>
-        </ul>
-      </div>
-    </section>
-
-    <section id="upload" class="grid two">
-      <div class="panel">
-        <h2>1. STEP 파일 견적</h2>
-        <p class="muted">실제 런칭 시 occt-import-js/OpenCascade WASM으로 STEP 형상 분석을 연결합니다. 현재 코드는 UI/계산 엔진 구조입니다.</p>
-        <label class="drop" for="stepFile">
-          <input id="stepFile" type="file" accept=".step,.stp" />
-          <strong>STEP/STP 파일 선택</strong>
-          <span id="fileName">아직 선택된 파일 없음</span>
+        <label id="dropZone" class="drop-zone" for="stepFile">
+          <input id="stepFile" type="file" accept=".step,.stp,.STEP,.STP" />
+          <strong>STEP/STP 파일을 드래그하거나 클릭</strong>
+          <span>Assembly STEP이면 파트명을 추출하고, 동일 파트 수량을 자동 집계합니다.</span>
         </label>
-        <div class="formGrid">
-          <label>공장 선택
-            <select id="factorySelect"></select>
+        <div id="fileMeta" class="file-meta">아직 파일 없음</div>
+      </article>
+
+      <article class="card">
+        <div class="section-title compact">
+          <span class="badge">2</span>
+          <div>
+            <h2>견적 기본값</h2>
+            <p>고객에게는 시간/공수/원가를 보여주지 않습니다.</p>
+          </div>
+        </div>
+        <div class="form-grid">
+          <label>전체 수량
+            <input id="globalQty" type="number" min="1" value="1" />
           </label>
-          <label>수량
-            <input id="qty" type="number" min="1" value="10" />
+          <label>기본 재질
+            <select id="globalMaterial"></select>
           </label>
-          <label>주요 재질
-            <select id="material">
-              <option>AL6061</option><option>SUS304</option><option>SS400</option><option>POM</option><option>ABS</option><option>PLA</option><option>PP</option>
-            </select>
-          </label>
-          <label>주요 공법
-            <select id="process">
-              <option value="cnc">CNC/MCT</option>
-              <option value="sheet">판금/절곡</option>
-              <option value="print3d">3D프린팅</option>
-              <option value="injection">사출</option>
-              <option value="profile">프로파일/압출</option>
-              <option value="assembly">조립품 통합</option>
-            </select>
-          </label>
-          <label>후처리
-            <select id="finish">
-              <option value="none">없음</option><option value="anodizing">아노다이징</option><option value="paint">도장/분체</option><option value="plating">도금</option><option value="sanding">샌딩</option>
-            </select>
+          <label>기본 후처리
+            <select id="globalFinish"></select>
           </label>
           <label>조립 포함
-            <select id="assembly">
-              <option value="no">미포함</option><option value="simple">단순 조립</option><option value="normal">보통 조립</option><option value="complex">복잡 조립</option>
+            <select id="assemblyIncluded">
+              <option value="yes">포함</option>
+              <option value="no">미포함</option>
             </select>
           </label>
         </div>
-        <button class="btn primary full" id="calcBtn">공장 견적 계산</button>
-      </div>
+      </article>
 
-      <div class="panel result" id="quoteResult">
-        <h2>견적 결과</h2>
-        <p class="muted">공장이 고객에게 제출할 수 있는 금액과 내부 산출 근거를 분리해서 보여줍니다.</p>
-        <div class="bigPrice" id="customerPrice">-</div>
-        <div class="subPrice" id="priceRange">STEP 파일 업로드 후 계산하세요.</div>
-        <div class="breakdown" id="breakdown"></div>
-      </div>
-    </section>
-
-    <section id="rates" class="panel">
-      <div class="sectionHead">
-        <div>
-          <h2>2. 공장 단가표 설정</h2>
-          <p class="muted">공장별로 재료 시세 할증, 공법별 단가, 공법별 마진을 다르게 넣습니다.</p>
+      <article class="card totals-card">
+        <div class="section-title compact">
+          <span class="badge">3</span>
+          <div>
+            <h2>견적 요약</h2>
+            <p>공장 내부 산출가 기준 · 플랫폼 수수료 0원</p>
+          </div>
         </div>
-        <button class="btn ghost" id="resetBtn">샘플 단가 초기화</button>
-      </div>
-      <div class="tabs">
-        <button class="tab active" data-tab="factory">공장 기본</button>
-        <button class="tab" data-tab="materialTab">재료 시세+할증</button>
-        <button class="tab" data-tab="processTab">공법별 단가/마진</button>
-      </div>
-      <div id="factory" class="tabBody active"></div>
-      <div id="materialTab" class="tabBody"></div>
-      <div id="processTab" class="tabBody"></div>
+        <div class="quote-total">
+          <span>고객 제출 견적가</span>
+          <strong id="customerTotal">0원</strong>
+        </div>
+        <div class="quote-range"><span id="customerRange">예상 범위: 0원 ~ 0원</span></div>
+        <div class="mini-stats">
+          <div><b id="partCount">0</b><span>파트</span></div>
+          <div><b id="processCount">0</b><span>공법</span></div>
+          <div><b id="confidenceAvg">-</b><span>평균 신뢰도</span></div>
+        </div>
+      </article>
     </section>
 
-    <section id="dashboard" class="grid three">
-      <div class="metric"><strong id="mFactories">0</strong><span>등록 공장</span></div>
-      <div class="metric"><strong id="mQuotes">0</strong><span>이번달 견적</span></div>
-      <div class="metric"><strong>0원</strong><span>플랫폼 수수료</span></div>
-    </section>
-  </main>
+    <main class="workspace">
+      <aside class="panel part-tree-panel">
+        <div class="panel-head">
+          <div>
+            <h2>어셈블리 / 파트 리스트</h2>
+            <p>파트를 선택하면 오른쪽에서 자동 분석값을 수정할 수 있습니다.</p>
+          </div>
+          <button id="applyBulkBtn" class="small">선택 일괄 적용</button>
+        </div>
+        <div class="filter-row">
+          <input id="partSearch" placeholder="파트명 검색: PLATE, BRACKET, 4040..." />
+          <select id="processFilter">
+            <option value="all">전체 공법</option>
+          </select>
+        </div>
+        <div id="partList" class="part-list empty">샘플 생성 또는 STP 파일을 업로드하세요.</div>
+      </aside>
 
-  <footer>FactoryQuote STEP · 공장 고객용 무료 STEP 견적 자동화 플랫폼</footer>
+      <section class="panel detail-panel">
+        <div class="panel-head sticky-head">
+          <div>
+            <h2 id="selectedPartName">선택된 파트 없음</h2>
+            <p id="selectedPartHint">왼쪽에서 파트를 선택하세요.</p>
+          </div>
+          <div class="part-nav-actions">
+            <button id="duplicatePartBtn" class="small ghost">파트 복제</button>
+            <button id="excludePartBtn" class="small danger">견적 제외</button>
+          </div>
+        </div>
+
+        <div id="partDetail" class="part-detail empty-detail">
+          <div class="empty-state">
+            <h3>파트별 수정 구조</h3>
+            <p>초기 자동 분석값을 먼저 보여주고, 공장이 실제 공법·재질·탭·절곡·마진을 수정하는 방식입니다.</p>
+          </div>
+        </div>
+      </section>
+
+      <aside class="panel quote-panel">
+        <div class="panel-head">
+          <div>
+            <h2>우리 공장 단가표</h2>
+            <p>재료 시세 + 할증, 공법별 단가, 공법별 마진율</p>
+          </div>
+        </div>
+        <div class="settings-tabs">
+          <button class="tab active" data-tab="materials">재료</button>
+          <button class="tab" data-tab="processes">공법</button>
+          <button class="tab" data-tab="assembly">조립</button>
+        </div>
+        <div id="settingsContent"></div>
+      </aside>
+    </main>
+
+    <section class="panel bottom-panel">
+      <div class="panel-head">
+        <div>
+          <h2>파트별 견적표</h2>
+          <p>고객 제출용에는 상세 원가를 숨기고, 내부용에서는 산출 근거를 확인합니다.</p>
+        </div>
+        <button id="copyCustomerQuoteBtn" class="small primary">고객 제출 요약 복사</button>
+      </div>
+      <div class="table-wrap">
+        <table id="quoteTable">
+          <thead>
+            <tr>
+              <th>파트명</th>
+              <th>수량</th>
+              <th>공법</th>
+              <th>재질</th>
+              <th>자동 분석</th>
+              <th>재료비</th>
+              <th>공정비</th>
+              <th>후처리/추가</th>
+              <th>마진</th>
+              <th>고객 제출가</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <template id="partDetailTemplate">
+    <div class="detail-grid">
+      <article class="detail-card analysis-card">
+        <h3>자동 분석값</h3>
+        <div class="analysis-metrics"></div>
+        <div class="recommend-box"></div>
+      </article>
+
+      <article class="detail-card">
+        <h3>기본 견적 항목</h3>
+        <div class="form-grid two">
+          <label>견적 포함
+            <select data-field="included"><option value="yes">포함</option><option value="no">제외</option></select>
+          </label>
+          <label>파트 수량
+            <input data-field="qty" type="number" min="1" />
+          </label>
+          <label>제작/구매 구분
+            <select data-field="category">
+              <option value="make">제작품</option>
+              <option value="buy">구매품</option>
+              <option value="exclude">제외</option>
+            </select>
+          </label>
+          <label>제작 방식
+            <select data-field="process"></select>
+          </label>
+          <label>재질
+            <select data-field="material"></select>
+          </label>
+          <label>후처리
+            <select data-field="finish"></select>
+          </label>
+        </div>
+      </article>
+
+      <article class="detail-card process-options-card">
+        <h3>공법별 수정 항목</h3>
+        <div class="process-options"></div>
+      </article>
+
+      <article class="detail-card">
+        <h3>이 파트 견적</h3>
+        <div class="part-cost-box"></div>
+      </article>
+    </div>
+  </template>
+
   <script src="app.js"></script>
 </body>
 </html>
